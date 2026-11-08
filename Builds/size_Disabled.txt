@@ -1,6 +1,6 @@
 Compression: Disabled; decompressionFallback: False; threads: False
-  44 110 038  Build\WebGL_Disabled.wasm
-  15 340 710  Build\WebGL_Disabled.data
+  44 110 661  Build\WebGL_Disabled.wasm
+  15 341 098  Build\WebGL_Disabled.data
      417 137  Build\WebGL_Disabled.framework.js
       27 914  Build\WebGL_Disabled.loader.js
        3 768  index.html
@@ -15,4 +15,4 @@ Compression: Disabled; decompressionFallback: False; threads: False
           96  TemplateData\progress-bar-empty-dark.png
           84  TemplateData\progress-bar-full-light.png
           74  TemplateData\progress-bar-full-dark.png
-  59 914 673  TOTAL
+  59 915 684  TOTAL

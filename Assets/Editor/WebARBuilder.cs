@@ -42,6 +42,7 @@ namespace WebARDemo.Editor
       SetupURP();
       SetupXRManagement();
       SetupPlayerSettings(WebGLCompressionFormat.Gzip);
+      EnsureTag("Interactable");
       AssetDatabase.SaveAssets();
       Debug.Log("[WebAR] Project setup done");
     }
@@ -109,6 +110,27 @@ namespace WebARDemo.Editor
     }
 
     // ------------------------------------------------------------------ Задание 7
+
+    /// <summary>
+    /// ControllerInteraction (руки в WebXRCameraSet из webxr-interactions) вызывает CompareTag("Interactable")
+    /// в физических колбэках; без объявленного тега каждое касание даёт ошибку в консоли.
+    /// </summary>
+    static void EnsureTag(string tag)
+    {
+      var tagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+      var tags = tagManager.FindProperty("tags");
+      for (int i = 0; i < tags.arraySize; i++)
+      {
+        if (tags.GetArrayElementAtIndex(i).stringValue == tag)
+        {
+          return;
+        }
+      }
+      tags.InsertArrayElementAtIndex(tags.arraySize);
+      tags.GetArrayElementAtIndex(tags.arraySize - 1).stringValue = tag;
+      tagManager.ApplyModifiedPropertiesWithoutUndo();
+      Debug.Log("[WebAR] Tag added: " + tag);
+    }
 
     static Material CreateUnlitMaterial(string path, Color color, bool cullFront)
     {

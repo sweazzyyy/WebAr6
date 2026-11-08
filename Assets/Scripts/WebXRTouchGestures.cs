@@ -39,10 +39,13 @@ namespace WebARDemo
     public Vector2 DragCurrent { get; private set; }
     public bool PinchActive { get; private set; }
     public float PinchGapDelta { get; private set; }
+    /// <summary>Текущее расстояние между пальцами (px) во время pinch; для колеса мыши — виртуальное.</summary>
+    public float PinchGap { get; private set; }
 
     readonly List<Vector2> m_Points = new List<Vector2>(4);
     bool m_BlockUntilRelease;
     float m_PrevGap = -1f;
+    float m_WheelGap = -1f;
 
     [Tooltip("Писать в консоль смену состояния жестов (для отладки на устройстве через chrome://inspect).")]
     public bool debugLog = false;
@@ -84,6 +87,7 @@ namespace WebARDemo
         DragActive = false;
         m_BlockUntilRelease = false;
         m_PrevGap = -1f;
+        m_WheelGap = -1f;
         return;
       }
 
@@ -106,6 +110,7 @@ namespace WebARDemo
         DragActive = false;
         m_BlockUntilRelease = true;
         float gap = Vector2.Distance(m_Points[0], m_Points[1]);
+        PinchGap = gap;
         if (m_PrevGap > 0f)
         {
           PinchGapDelta = gap - m_PrevGap;
@@ -122,6 +127,9 @@ namespace WebARDemo
         {
           PinchActive = true;
           PinchGapDelta = Mathf.Sign(wheel) * wheelPinchPixels;
+          if (m_WheelGap <= 0f) m_WheelGap = 200f;
+          m_WheelGap = Mathf.Max(20f, m_WheelGap + PinchGapDelta);
+          PinchGap = m_WheelGap;
         }
       }
     }

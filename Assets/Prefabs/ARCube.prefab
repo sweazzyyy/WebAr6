@@ -198,7 +198,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f816ca4ab3d79864ca8bfee3df59b368, type: 3}
   m_Name: 
   m_EditorClassIdentifier: WebARDemo::WebARDemo.PinchScaleGrabTransformer
-  sensitivity: 0.25
+  gestures: {fileID: 0}
   minimumScaleRatio: 0.3
   maximumScaleRatio: 4
   debugLog: 0
