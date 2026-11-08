@@ -27,6 +27,8 @@ crashlytics-buildsettings.properties
 # Build output (rebuild via WebAR Demo menu); keep size reports
 /Builds/*
 !/Builds/size_*.txt
+!/Builds/WebGL_Gzip/
+/Builds/WebGL_Gzip/debug.html
 
 # Local build logs
 Logs_build_*.txt
