@@ -1,5 +1,9 @@
 {
     "name": "WebARDemo",
-    "references": ["WebXR"],
+    "references": [
+        "WebXR",
+        "Unity.InputSystem",
+        "Unity.XR.Interaction.Toolkit"
+    ],
     "autoReferenced": true
 }

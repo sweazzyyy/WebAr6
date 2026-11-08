@@ -1,7 +1,7 @@
 Compression: Disabled; decompressionFallback: False; threads: False
-  37 735 043  Build\WebGL_Disabled.wasm
-  12 438 460  Build\WebGL_Disabled.data
-     416 952  Build\WebGL_Disabled.framework.js
+  44 110 038  Build\WebGL_Disabled.wasm
+  15 340 710  Build\WebGL_Disabled.data
+     417 137  Build\WebGL_Disabled.framework.js
       27 914  Build\WebGL_Disabled.loader.js
        3 768  index.html
        3 077  TemplateData\unity-logo-light.png
@@ -15,4 +15,4 @@ Compression: Disabled; decompressionFallback: False; threads: False
           96  TemplateData\progress-bar-empty-dark.png
           84  TemplateData\progress-bar-full-light.png
           74  TemplateData\progress-bar-full-dark.png
-  50 637 243  TOTAL
+  59 914 673  TOTAL

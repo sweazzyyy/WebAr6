@@ -38,14 +38,23 @@ const server = https.createServer({
   if (!file.startsWith(root)) { res.writeHead(403); return res.end(); }
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) { res.writeHead(404); return res.end('Not found'); }
+    // ETag/Last-Modified нужны кэшу Unity (Data Caching, IndexedDB): без них он не видит,
+    // что сборка изменилась, и подсовывает старый .data к новому .wasm ("level0 is corrupted").
+    const etag = `"${st.size.toString(16)}-${Math.floor(st.mtimeMs).toString(16)}"`;
     const headers = {
       'Content-Type': contentType(file),
       'Content-Length': st.size,
       'Cache-Control': 'no-cache',
+      'ETag': etag,
+      'Last-Modified': st.mtime.toUTCString(),
     };
     // Без decompression fallback браузер сам распаковывает — нужен Content-Encoding
     if (file.endsWith('.gz')) headers['Content-Encoding'] = 'gzip';
     if (file.endsWith('.br')) headers['Content-Encoding'] = 'br';
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, { 'ETag': etag, 'Cache-Control': 'no-cache' });
+      return res.end();
+    }
     res.writeHead(200, headers);
     fs.createReadStream(file).pipe(res);
     console.log(`${req.socket.remoteAddress} ${req.method} ${urlPath} ${st.size}`);

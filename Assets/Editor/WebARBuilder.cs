@@ -11,7 +11,17 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.XR.Management;
+using UnityEngine.InputSystem;
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.AR.Inputs;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit.Interactors.Visuals;
+using UnityEngine.XR.Interaction.Toolkit.Transformers;
 using WebXR;
+using WebXR.XRITBridge;
+using XRTrackedPoseDriver = UnityEngine.InputSystem.XR.TrackedPoseDriver;
 
 namespace WebARDemo.Editor
 {
@@ -77,6 +87,8 @@ namespace WebARDemo.Editor
       cubeTmp.GetComponent<MeshRenderer>().sharedMaterial = mat;
       var placerTmp = cubeTmp.AddComponent<ViewerSpacePlacer>();
       placerTmp.distance = 0.6f;
+      placerTmp.spinSpeed = 0f; // задание 7: объект двигает пользователь
+      SetupGrabbable(cubeTmp);
       var cubePrefab = PrefabUtility.SaveAsPrefabAsset(cubeTmp, "Assets/Prefabs/ARCube.prefab");
       UnityEngine.Object.DestroyImmediate(cubeTmp);
 
@@ -87,10 +99,199 @@ namespace WebARDemo.Editor
       placer.viewer = cam != null ? cam.transform : null;
       EditorUtility.SetDirty(placer);
 
+      // Задание 7: XR Interaction Toolkit + webxr-xrit-bridge
+      AddInteractionRig(camSet, cam);
+
       EditorSceneManager.SaveScene(scene, ScenePath);
       EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
       AssetDatabase.SaveAssets();
       Debug.Log("[WebAR] Scene created: " + ScenePath);
+    }
+
+    // ------------------------------------------------------------------ Задание 7
+
+    static Material CreateUnlitMaterial(string path, Color color, bool cullFront)
+    {
+      var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = Path.GetFileNameWithoutExtension(path) };
+      m.SetColor("_BaseColor", color);
+      if (cullFront)
+      {
+        m.SetFloat("_Cull", (float)CullMode.Front); // inverted hull -> контур
+      }
+      AssetDatabase.CreateAsset(m, path);
+      return m;
+    }
+
+    /// <summary>Куб: XR Grab Interactable + перемещение/масштаб + визуальный отклик.</summary>
+    static void SetupGrabbable(GameObject cube)
+    {
+      // Чуть увеличенный коллайдер — по маленькому кубу легче попасть пальцем
+      cube.GetComponent<BoxCollider>().size = Vector3.one * 1.3f;
+
+      var rb = cube.AddComponent<Rigidbody>();
+      rb.isKinematic = true;
+      rb.useGravity = false;
+
+      var general = cube.AddComponent<XRGeneralGrabTransformer>();
+      general.allowTwoHandedScaling = true;   // два контроллера -> масштаб
+      general.allowOneHandedScaling = true;
+      general.minimumScaleRatio = 0.3f;
+      general.maximumScaleRatio = 4f;
+      general.scaleMultiplier = 1f;
+
+      var pinch = cube.AddComponent<PinchScaleGrabTransformer>(); // pinch двумя пальцами -> масштаб
+
+      var grab = cube.AddComponent<XRGrabInteractable>();
+      grab.selectMode = InteractableSelectMode.Multiple;
+      grab.movementType = XRBaseInteractable.MovementType.Instantaneous;
+      grab.trackPosition = true;
+      grab.trackRotation = false; // при перетаскивании ориентация куба не меняется
+      grab.trackScale = true;
+      grab.throwOnDetach = false;
+      grab.useDynamicAttach = true; // хватаем в точке попадания луча, без «прыжка» центра
+      grab.startingSingleGrabTransformers = new System.Collections.Generic.List<XRBaseGrabTransformer> { general, pinch };
+      grab.startingMultipleGrabTransformers = new System.Collections.Generic.List<XRBaseGrabTransformer> { general };
+
+      // Контур (inverted hull)
+      var outlineMat = CreateUnlitMaterial("Assets/Materials/OutlineMat.mat", new Color(1f, 0.95f, 0.3f), true);
+      var outline = GameObject.CreatePrimitive(PrimitiveType.Cube);
+      outline.name = "Outline";
+      UnityEngine.Object.DestroyImmediate(outline.GetComponent<BoxCollider>());
+      outline.transform.SetParent(cube.transform, false);
+      outline.transform.localScale = Vector3.one * 1.08f;
+      var outlineRenderer = outline.GetComponent<MeshRenderer>();
+      outlineRenderer.sharedMaterial = outlineMat;
+      outlineRenderer.shadowCastingMode = ShadowCastingMode.Off;
+      outlineRenderer.enabled = false;
+
+      var fb = cube.AddComponent<InteractableFeedback>();
+      fb.body = cube.GetComponent<MeshRenderer>();
+      fb.outline = outlineRenderer;
+    }
+
+    /// <summary>
+    /// XRI-риг:
+    ///  - Screen Ray Interactor: XRRayInteractor + штатные XRI ScreenSpaceRayPoseDriver / ScreenSpaceSelectInput /
+    ///    ScreenSpacePinchScaleInput, жесты из WebXRTouchGestures (телефон в AR: drag 1 пальцем, pinch 2 пальцами);
+    ///  - Left/Right Ray Interactor: контроллеры WebXR через webxr-xrit-bridge (Input System device
+    ///    WebXRInteractionController) -> TrackedPoseDriver + XRRayInteractor (trigger = select).
+    /// </summary>
+    static void AddInteractionRig(GameObject rig, Camera cam)
+    {
+      new GameObject("XR Interaction Manager").AddComponent<XRInteractionManager>();
+
+      // webxr-xrit-bridge (без WebXRManager из его префаба: менеджер уже создаётся WebXR Export автоматически)
+      var bridge = new GameObject("WebXR XRIT Bridge");
+      bridge.AddComponent<WebXRControllerAdapter>();
+      bridge.AddComponent<WebXRHeadsetAdapter>().head = cam.transform;
+
+      // --- Жесты экрана
+      var gesturesGo = new GameObject("Touch Gestures");
+      var gestures = gesturesGo.AddComponent<WebXRTouchGestures>();
+      var dragStart = gesturesGo.AddComponent<TouchGestureVector2Reader>();
+      dragStart.source = gestures;
+      dragStart.kind = TouchGestureVector2Reader.Kind.DragStart;
+      var dragCurrent = gesturesGo.AddComponent<TouchGestureVector2Reader>();
+      dragCurrent.source = gestures;
+      dragCurrent.kind = TouchGestureVector2Reader.Kind.DragCurrent;
+      var pinchReader = gesturesGo.AddComponent<TouchGestureFloatReader>();
+      pinchReader.source = gestures;
+      var countReader = gesturesGo.AddComponent<TouchGestureIntReader>();
+      countReader.source = gestures;
+
+      XRInputValueReader<T> ObjRef<T>(string name, IXRInputValueReader<T> obj) where T : struct
+      {
+        var r = new XRInputValueReader<T>(name, XRInputValueReader.InputSourceMode.ObjectReference);
+        r.SetObjectReference(obj);
+        return r;
+      }
+      XRInputValueReader<T> Unused<T>(string name) where T : struct =>
+        new XRInputValueReader<T>(name, XRInputValueReader.InputSourceMode.Unused);
+
+      // --- Screen Ray Interactor (телефон)
+      var screenRayGo = new GameObject("Screen Ray Interactor");
+      screenRayGo.transform.SetParent(rig.transform, false);
+
+      var poseDriver = screenRayGo.AddComponent<ScreenSpaceRayPoseDriver>();
+      poseDriver.controllerCamera = cam;
+      poseDriver.tapStartPositionInput = Unused<Vector2>("Tap Start Position");
+      poseDriver.dragStartPositionInput = ObjRef<Vector2>("Drag Start Position", dragStart);
+      poseDriver.dragCurrentPositionInput = ObjRef<Vector2>("Drag Current Position", dragCurrent);
+      poseDriver.screenTouchCountInput = ObjRef<int>("Screen Touch Count", countReader);
+
+      var selectInput = screenRayGo.AddComponent<ScreenSpaceSelectInput>();
+      selectInput.tapStartPositionInput = Unused<Vector2>("Tap Start Position");
+      selectInput.dragCurrentPositionInput = ObjRef<Vector2>("Drag Current Position", dragCurrent);
+      selectInput.pinchGapDeltaInput = ObjRef<float>("Pinch Gap Delta", pinchReader);
+      selectInput.twistDeltaRotationInput = Unused<float>("Twist Delta Rotation");
+
+      var pinchScaleInput = screenRayGo.AddComponent<ScreenSpacePinchScaleInput>();
+      pinchScaleInput.useRotationThreshold = false;
+      pinchScaleInput.pinchGapDeltaInput = ObjRef<float>("Pinch Gap Delta", pinchReader);
+      pinchScaleInput.twistDeltaRotationInput = Unused<float>("Twist Delta Rotation");
+
+      var screenRay = screenRayGo.AddComponent<XRRayInteractor>();
+      ConfigureRay(screenRay);
+      var sel = new XRInputButtonReader("Select", null, false, XRInputButtonReader.InputSourceMode.ObjectReference);
+      sel.SetObjectReference(selectInput);
+      screenRay.selectInput = sel;
+      screenRay.activateInput = new XRInputButtonReader("Activate", null, false, XRInputButtonReader.InputSourceMode.Unused);
+      screenRay.scaleMode = UnityEngine.XR.Interaction.Toolkit.Interactors.ScaleMode.DistanceDelta;
+      screenRay.scaleDistanceDeltaInput = ObjRef<float>("Scale Distance Delta", pinchScaleInput);
+      gestures.screenInteractor = screenRay;
+      // scaleValue (pinch) XRRayInteractor считает только при manipulateAttachTransform = true
+      screenRay.manipulateAttachTransform = true;
+
+      // --- Контроллеры через webxr-xrit-bridge
+      var lineMat = CreateUnlitMaterial("Assets/Materials/RayLineMat.mat", Color.white, false);
+      AddControllerRay(rig, "Left Ray Interactor (bridge)", "LeftHand", lineMat);
+      AddControllerRay(rig, "Right Ray Interactor (bridge)", "RightHand", lineMat);
+
+      Debug.Log("[WebAR] XRI rig added: screen ray (touch), left/right rays (webxr-xrit-bridge), interaction manager");
+    }
+
+    static void ConfigureRay(XRRayInteractor ray)
+    {
+      ray.lineType = XRRayInteractor.LineType.StraightLine;
+      ray.maxRaycastDistance = 10f;
+      ray.useForceGrab = false;              // объект остаётся на расстоянии луча
+      ray.manipulateAttachTransform = false;
+      ray.enableUIInteraction = false;
+    }
+
+    static void AddControllerRay(GameObject rig, string name, string usage, Material lineMat)
+    {
+      var go = new GameObject(name);
+      go.transform.SetParent(rig.transform, false);
+
+      var tpd = go.AddComponent<XRTrackedPoseDriver>();
+      tpd.trackingType = XRTrackedPoseDriver.TrackingType.RotationAndPosition;
+      tpd.updateType = XRTrackedPoseDriver.UpdateType.UpdateAndBeforeRender;
+      tpd.positionInput = new InputActionProperty(new InputAction("Position", InputActionType.Value, $"<XRController>{{{usage}}}/devicePosition", expectedControlType: "Vector3"));
+      tpd.rotationInput = new InputActionProperty(new InputAction("Rotation", InputActionType.Value, $"<XRController>{{{usage}}}/deviceRotation", expectedControlType: "Quaternion"));
+      tpd.trackingStateInput = new InputActionProperty(new InputAction("Tracking State", InputActionType.Value, $"<XRController>{{{usage}}}/trackingState", expectedControlType: "Integer"));
+
+      var ray = go.AddComponent<XRRayInteractor>();
+      ConfigureRay(ray);
+      var sel = new XRInputButtonReader("Select", "Select Value", false, XRInputButtonReader.InputSourceMode.InputAction);
+      sel.inputActionPerformed = new InputAction("Select", InputActionType.Button, $"<XRController>{{{usage}}}/triggerPressed");
+      sel.inputActionValue = new InputAction("Select Value", InputActionType.Value, $"<XRController>{{{usage}}}/trigger", expectedControlType: "Axis");
+      ray.selectInput = sel;
+      ray.activateInput = new XRInputButtonReader("Activate", null, false, XRInputButtonReader.InputSourceMode.Unused);
+      // Устройство моста обновляется в BeforeRender (updateBeforeRender), поэтому WasPerformedThisFrame
+      // в Update уже false и StateChange не срабатывает. State: select активен, пока триггер нажат.
+      ray.selectActionTrigger = XRBaseInputInteractor.InputTriggerType.State;
+
+      var line = go.GetComponent<LineRenderer>();
+      if (line == null)
+      {
+        line = go.AddComponent<LineRenderer>();
+      }
+      line.sharedMaterial = lineMat;
+      line.widthMultiplier = 0.005f;
+      line.shadowCastingMode = ShadowCastingMode.Off;
+      go.AddComponent<XRInteractorLineVisual>();
+      go.AddComponent<ControllerRayGate>().usage = usage;
     }
 
     /// <summary>
