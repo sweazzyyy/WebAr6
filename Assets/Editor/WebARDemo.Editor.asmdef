@@ -1,0 +1,13 @@
+{
+    "name": "WebARDemo.Editor",
+    "references": [
+        "WebARDemo",
+        "WebXR",
+        "Unity.XR.Management",
+        "Unity.XR.Management.Editor",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime"
+    ],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": false
+}

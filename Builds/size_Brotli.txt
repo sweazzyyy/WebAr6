@@ -1,0 +1,18 @@
+Compression: Brotli; decompressionFallback: False; threads: False
+   7 460 334  Build\WebGL_Brotli.wasm.br
+   4 102 759  Build\WebGL_Brotli.data.br
+      79 625  Build\WebGL_Brotli.framework.js.br
+      27 914  Build\WebGL_Brotli.loader.js
+       3 769  index.html
+       3 077  TemplateData\unity-logo-light.png
+       3 042  TemplateData\unity-logo-dark.png
+       2 947  TemplateData\webgl-logo.png
+       2 305  TemplateData\favicon.ico
+       1 749  TemplateData\style.css
+       1 448  StreamingAssets\UnityServicesProjectConfiguration.json
+         175  TemplateData\fullscreen-button.png
+         109  TemplateData\progress-bar-empty-light.png
+          96  TemplateData\progress-bar-empty-dark.png
+          84  TemplateData\progress-bar-full-light.png
+          74  TemplateData\progress-bar-full-dark.png
+  11 689 507  TOTAL

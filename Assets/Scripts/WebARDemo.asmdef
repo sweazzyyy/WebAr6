@@ -1,0 +1,5 @@
+{
+    "name": "WebARDemo",
+    "references": ["WebXR"],
+    "autoReferenced": true
+}

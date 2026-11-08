@@ -1,0 +1,18 @@
+Compression: Disabled; decompressionFallback: False; threads: False
+  37 735 043  Build\WebGL_Disabled.wasm
+  12 438 247  Build\WebGL_Disabled.data
+     416 952  Build\WebGL_Disabled.framework.js
+      27 914  Build\WebGL_Disabled.loader.js
+       3 768  index.html
+       3 077  TemplateData\unity-logo-light.png
+       3 042  TemplateData\unity-logo-dark.png
+       2 947  TemplateData\webgl-logo.png
+       2 305  TemplateData\favicon.ico
+       1 749  TemplateData\style.css
+       1 448  StreamingAssets\UnityServicesProjectConfiguration.json
+         175  TemplateData\fullscreen-button.png
+         109  TemplateData\progress-bar-empty-light.png
+          96  TemplateData\progress-bar-empty-dark.png
+          84  TemplateData\progress-bar-full-light.png
+          74  TemplateData\progress-bar-full-dark.png
+  50 637 030  TOTAL

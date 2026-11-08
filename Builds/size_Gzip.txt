@@ -1,0 +1,18 @@
+Compression: Gzip; decompressionFallback: False; threads: False
+  10 176 741  Build\WebGL_Gzip.wasm.gz
+   4 958 569  Build\WebGL_Gzip.data.gz
+      90 395  Build\WebGL_Gzip.framework.js.gz
+      27 914  Build\WebGL_Gzip.loader.js
+       3 761  index.html
+       3 077  TemplateData\unity-logo-light.png
+       3 042  TemplateData\unity-logo-dark.png
+       2 947  TemplateData\webgl-logo.png
+       2 305  TemplateData\favicon.ico
+       1 749  TemplateData\style.css
+       1 448  StreamingAssets\UnityServicesProjectConfiguration.json
+         175  TemplateData\fullscreen-button.png
+         109  TemplateData\progress-bar-empty-light.png
+          96  TemplateData\progress-bar-empty-dark.png
+          84  TemplateData\progress-bar-full-light.png
+          74  TemplateData\progress-bar-full-dark.png
+  15 272 486  TOTAL

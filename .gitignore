@@ -1,0 +1,35 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/Data/
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.vs/
+.vscode/
+.idea/
+crashlytics-buildsettings.properties
+
+# Build output (rebuild via WebAR Demo menu); keep size reports
+/Builds/*
+!/Builds/size_*.txt
+
+# Local build logs
+Logs_build_*.txt
+
+# Local HTTPS certificate (private key must not be published)
+/server/*.pem
